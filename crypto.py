@@ -24,45 +24,47 @@ df = pd.read_csv('/content/drive/My Drive/Redes Neuronales/crypto/Bitbay_BTCUSD_
 df.head()
 #ds = df.to_numpy()[::-1]
 
+
 set_entrenamiento = df['2019':].iloc[:,[3]]
 set_validacion = df[:'2020'].iloc[:,[3]]
 
+#Reverse arrays
 set_entrenamiento = set_entrenamiento[::-1]
 set_validacion = set_validacion[::-1]
 
+#Normalize data
 sc = MinMaxScaler(feature_range=(0,1))
 set_entrenamiento_escalado = sc.fit_transform(set_entrenamiento)
-
-print(len(set_entrenamiento))
 
 X_train = []
 Y_train = []
 
 m=len(set_entrenamiento_escalado)
-
+############Load Data############
 for i in range(7, m):
   X_train.append(set_entrenamiento_escalado[i-7:i]) 
   Y_train.append(set_entrenamiento_escalado[i])
 
 X_train, Y_train = np.array(X_train), np.array(Y_train)
-
-print((len(X_train)))
-print((Y_train.shape[1],1))
+############End Data############
 
 from keras.models import Sequential
 from keras.layers import Dense, LSTM
 
 dim_entrada = (X_train.shape[1],1)
 dim_salida = (Y_train.shape[1],1)
-na = 50
 
+#Neuron number
+nn = 50
 
+#Load and fit the NN
 modelo = Sequential()
-modelo.add(LSTM(units=na, input_shape=dim_entrada))
+modelo.add(LSTM(units=nn, input_shape=dim_entrada))
 modelo.add(Dense(units=1))
 modelo.compile(optimizer='rmsprop', loss='mse')
 modelo.fit(X_train, Y_train, epochs=20, batch_size=8)
 
+#Testing NN
 x_test = set_validacion
 x_test = sc.transform(x_test)
 
@@ -74,9 +76,6 @@ X_test = np.array(X_test)
 
 X_test = np.reshape(X_test, (X_test.shape[0],X_test.shape[1],1))
 
-
-
-print(X_test.ndim)
 
 prediccion = modelo.predict(X_test)
 prediccion = sc.inverse_transform(prediccion)
