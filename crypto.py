@@ -19,8 +19,7 @@ from sklearn.preprocessing import MinMaxScaler
 PATH = "/content/drive/My Drive/Redes Neuronales/crypto"
 
 df = pd.read_csv('/content/drive/My Drive/Redes Neuronales/crypto/Bitbay_BTCUSD_d.csv', index_col='Date', parse_dates=['Date'])
-df.head()
-#ds = df.to_numpy()[::-1]
+
 
 
 set_entrenamiento = df['2019':].iloc[:,[3]]
