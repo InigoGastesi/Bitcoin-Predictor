@@ -10,9 +10,7 @@ Original file is located at
 from google.colab import drive
 drive.mount('/content/drive')
 
-import tensorflow as tf
 import numpy as np
-import keras
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
