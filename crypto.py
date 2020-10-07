@@ -18,50 +18,96 @@ from sklearn.preprocessing import MinMaxScaler
 
 PATH = "/content/drive/My Drive/Redes Neuronales/crypto"
 
-df = pd.read_csv('/content/drive/My Drive/Redes Neuronales/crypto/Bitbay_BTCUSD_d.csv', index_col='Date', parse_dates=['Date'])
+df = pd.read_csv(PATH + '/Coinbase_BTCUSD_d.csv', index_col='Date', parse_dates=['Date'])
 
 
 
-set_entrenamiento = df['2019':].iloc[:,[3]]
+set_entrenamiento = df['2019':'2018'].iloc[:,[3]]
 set_validacion = df[:'2020'].iloc[:,[3]]
+
+print(set_validacion)
 
 #Reverse arrays
 set_entrenamiento = set_entrenamiento[::-1]
 set_validacion = set_validacion[::-1]
 
 #Normalize data
-sc = MinMaxScaler(feature_range=(0,1))
+sc = MinMaxScaler(feature_range=(-1,1))
 set_entrenamiento_escalado = sc.fit_transform(set_entrenamiento)
+set_validacion_escalado = sc.fit_transform(set_validacion)
 
 X_train = []
 Y_train = []
 
+X_test = []
+Y_test = []
+
 m=len(set_entrenamiento_escalado)
 ############Load Data############
-for i in range(7, m):
+for i in range(7, m):   
   X_train.append(set_entrenamiento_escalado[i-7:i]) 
-  Y_train.append(set_entrenamiento_escalado[i])
+  Y_train.append(set_entrenamiento_escalado[i, 0])
 
 X_train, Y_train = np.array(X_train), np.array(Y_train)
 ############End Data############
+X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
+
+for i in range(7, len(set_validacion_escalado)):
+  X_test.append(set_validacion_escalado[i-7:i])
+  Y_test.append(set_validacion_escalado[i, 0])
+
+X_test, Y_test = np.array(X_test), np.array(X_test)
+X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
+
+print(X_train.shape)
 
 from keras.models import Sequential
-from keras.layers import Dense, LSTM
+from keras.layers import Dense,LSTM,LeakyReLU, Dropout
+
+
 
 dim_entrada = (X_train.shape[1],1)
-dim_salida = (Y_train.shape[1],1)
+dim_salida = 1
 
 #Neuron number
-nn = 50
+nn = 15
 
 #Load and fit the NN
 modelo = Sequential()
-modelo.add(LSTM(units=nn, input_shape=dim_entrada))
-modelo.add(Dense(units=1))
-modelo.compile(optimizer='rmsprop', loss='mse')
-modelo.fit(X_train, Y_train, epochs=20, batch_size=8)
+modelo.add(LSTM(units=nn, activation='sigmoid'))
+modelo.add(LeakyReLU(alpha=0.5))
+modelo.add(Dropout(0.2))
+modelo.add(Dense(units = 1))
+#modelo.add(Dense(units=dim_salida))
+modelo.compile(optimizer='adam', loss='mse')
+history = modelo.fit(X_train, Y_train, epochs=20, batch_size=5, validation_data=(X_test,Y_test), shuffle=False)
+
+
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('model train vs validation loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'validation'], loc='upper right')
+plt.show()
 
 #Testing NN
+x_test = set_validacion
+x_test = set_validacion[0:i-60]
+x_test = sc.transform(x_test)
+x2_test = []
+for i in range(0, len(x_test)):
+  x2_test.append(x_test[i])
+
+for i in range(len(x2_test)-1,len(x2_test)+60):  
+  X_test = []
+  X_test.append(x2_test[i-60:i])
+  X_test = np.array(X_test)
+  X_test = np.reshape(X_test, (X_test.shape[0],X_test.shape[1],1))
+  X_test = X_test.astype('float64')
+  prediccion = modelo.predict(X_test)
+  x2_test.append(prediccion)
+
 x_test = set_validacion
 x_test = sc.transform(x_test)
 
@@ -73,11 +119,27 @@ X_test = np.array(X_test)
 
 X_test = np.reshape(X_test, (X_test.shape[0],X_test.shape[1],1))
 
+print(x2_test)
 
 prediccion = modelo.predict(X_test)
 prediccion = sc.inverse_transform(prediccion)
 
+x2_test = sc.inverse_transform(x2_test)
+
 plt.plot(set_validacion,color='red')
 plt.show()
-plt.plot(prediccion,color='blue')
+plt.plot(x2_test,color='blue')
 plt.show()
+plt.plot(prediccion,color='green')
+plt.show()
+
+X_test = []
+X_test.append(set_validacion_escalado[len(set_validacion_escalado)-7:len(set_entrenamiento_escalado)])
+X_test = np.array(X_test)
+
+X_test = np.reshape(X_test, (X_test.shape[0],X_test.shape[1],1))
+
+prediccion = modelo.predict(X_test)
+prediccion = sc.inverse_transform(prediccion)
+
+print(prediccion)
